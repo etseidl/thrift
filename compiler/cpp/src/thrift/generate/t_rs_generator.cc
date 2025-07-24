@@ -1353,6 +1353,9 @@ void t_rs_generator::render_union_definition(const string& union_name, t_struct*
            << ")," << '\n';
   }
 
+  // add __UNKNOWN__ field for forward compatibility
+  f_gen_ << indent() << "__UNKNOWN__ { field_id: i16 },\n";
+
   indent_down();
   f_gen_ << "}" << '\n';
   f_gen_ << '\n';
@@ -1445,6 +1448,12 @@ void t_rs_generator::render_union_sync_write(const string& union_name, t_struct*
       indent_down();
       f_gen_ << indent() << "}," << '\n';
     }
+    f_gen_ << indent() << union_name << "::__UNKNOWN__{ field_id: id } => {" << '\n';
+    indent_up();
+    f_gen_ << indent() << "panic!(\"attempt to write unknown " << union_name << " field {}\", id);"
+           << '\n';
+    indent_down();
+    f_gen_ << indent() << "}," << '\n';
     indent_down();
     f_gen_ << indent() << "}" << '\n';
   }
@@ -1818,6 +1827,12 @@ void t_rs_generator::render_union_sync_read(const string& union_name, t_struct* 
   f_gen_ << indent() << "_ => {" << '\n';
   indent_up();
   f_gen_ << indent() << "i_prot.skip(field_ident.field_type)?;" << '\n';
+  f_gen_ << indent() << "if ret.is_none() {" << '\n';
+  indent_up();
+  f_gen_ << indent() << "ret = Some(" << union_name << "::__UNKNOWN__{ field_id });"
+         << '\n';
+  indent_down();
+  f_gen_ << indent() << "}" << '\n';
   f_gen_ << indent() << "received_field_count += 1;" << '\n';
   indent_down();
   f_gen_ << indent() << "}," << '\n';
